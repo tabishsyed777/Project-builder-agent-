@@ -1,63 +1,67 @@
-# Forge — Project Builder Agent
+# Forge — Local Project Builder Agent
 
-Forge turns an early project idea into a practical first-build plan. Describe the idea, audience, project type, experience level, and any constraints; Forge creates a focused sequence of milestones, suggests a starter stack, drafts a few project files, and runs a small planning checklist.
+Forge is a local-first project assistant. Type a question or project command in the chat panel and Forge sends it to an Ollama model running on your computer. A small Python API keeps the model connection private to your machine and reports whether Ollama and Docker are ready.
 
-Forge is a lightweight, local-first prototype. It runs in the browser without an API key, and saves recent plans in that browser's local storage.
+The current build is an early working foundation. Chat is connected to Ollama. Docker tasks are isolated and require explicit confirmation, but the chat model does not yet automatically turn arbitrary natural-language requests into Docker actions or edit a persistent project workspace.
 
-## Features
+## What works
 
-- Guided project brief with audience, type, experience, and constraints
-- MVP-oriented project summary and five-step build sequence
-- Suggested technology stack based on project type and idea keywords
-- Draft README, TypeScript project brief, and HTML landing page
-- Copy individual starter files or download them together as a ZIP
-- Local planning review that calls out assumptions and missing specificity
-- Recent builds stored on the current device
+- Local chat through Ollama's `/api/chat` endpoint
+- Live status for Ollama, the configured model, and Docker
+- Browser chat interface served by the Python API
+- Docker task API with exact command preview and an explicit confirmation step
+- Docker limits: temporary workspace, no network, read-only container root, dropped capabilities, resource limits, and a 120-second timeout
+- Existing project brief planner and draft-file generator
 
-## Run it
+## Requirements
 
-No build tools or package installation are required.
+- Python 3.10 or newer
+- Ollama installed and running
+- Docker Desktop installed and running (needed only for container tasks)
+- A model available to Ollama; default is `qwen2.5-coder:3b`
 
-1. Clone or download this repository.
-2. Open `index.html` in a modern browser.
+On an 8 GB machine, use a small quantized model and close other memory-heavy apps. The configured model can be changed with `OLLAMA_MODEL`.
 
-You can also serve the folder with any static web server. For example:
+## Start Forge
+
+In Terminal, from this project folder:
 
 ```sh
-python3 -m http.server 8000
+ollama pull qwen2.5-coder:3b
+ollama serve
 ```
 
-Then visit `http://localhost:8000`.
+In a second Terminal window, start Docker Desktop, then run:
 
-## How it works
-
-The current version uses deterministic browser-side rules and templates. It selects a suggested stack from the chosen project type and a few idea keywords, then builds a generic sequence for narrowing scope, mapping a user journey, implementing a happy path, adding persistence and recovery, and collecting user feedback. The review panel checks basic brief qualities and surfaces assumptions.
-
-The app does not call an LLM, create or run a real application repository, execute generated code, or verify a stack against the user's environment. The generated files are starting drafts, not a finished application. The review is a planning checklist, not a security audit or test run.
-
-## Privacy and storage
-
-The project brief and saved builds stay in the browser's local storage. They are not sent to a server by this app. Clearing browser storage removes saved builds. The page uses Google Fonts when an internet connection is available; system fonts are used when they are not.
-
-## Project files
-
-```
-.
-├── index.html   # Self-contained app: markup, styling, and browser-side logic
-└── README.md    # Project overview and usage guide
+```sh
+python3 server.py
 ```
 
-## Roadmap
+Open <http://127.0.0.1:8765>. Keep the server running while using Forge. The UI needs to be opened through this local server; opening `index.html` directly will not connect to the API.
 
-- Improve scope extraction and make assumptions editable
-- Add clearer per-project-type starter templates
-- Let users edit and export a complete project folder
-- Add optional model providers behind explicit user configuration
-- Add stronger validation for generated artifacts
+Optional settings:
 
-## Contributing
+```sh
+OLLAMA_MODEL=qwen2.5-coder:3b OLLAMA_URL=http://127.0.0.1:11434 FORGE_PORT=8765 python3 server.py
+```
 
-Issues and pull requests are welcome. For behavior changes, include a short reproduction or example brief and describe the expected result. Keep generated or sample output clearly labeled as draft until it has been verified.
+## Docker task safety
+
+Forge never runs a task just because a model suggested it. A task must be submitted through the task API and the user must confirm the displayed image and argument list. Only `python:3.12-alpine` and `node:22-alpine` are currently accepted. Containers have no network and use an empty temporary working directory. Do not put secrets in prompts or generated commands.
+
+## Current limitations
+
+- The model answers chat requests; automatic tool planning and natural-language-to-Docker execution are not implemented yet.
+- Docker tasks currently start with an empty temporary folder. They cannot modify a persistent project checkout.
+- The generated planner output remains a deterministic template, not an LLM-generated plan.
+- Docker execution cannot be verified until Docker Desktop is running and an image is available locally or can be pulled.
+- There is no authentication. The API binds to `127.0.0.1` by default; do not expose it to a network without adding authentication and reviewing the security model.
+
+## Files
+
+- `index.html` — Forge interface and existing plan builder
+- `server.py` — local Ollama and Docker API
+- `README.md` — setup and project notes
 
 ## License
 
